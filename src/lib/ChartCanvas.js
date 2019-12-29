@@ -107,14 +107,7 @@ function getXScaleDirection(flipXScale) {
 }
 
 function calculateFullData(props) {
-  const {
-    data: fullData,
-    plotFull,
-    xScale,
-    clamp,
-    pointsPerPxThreshold,
-    flipXScale,
-  } = props;
+  const { data: fullData, plotFull, xScale, clamp, pointsPerPxThreshold, flipXScale } = props;
   const { xAccessor, displayXAccessor, minPointsPerPxThreshold } = props;
 
   const useWholeData = isDefined(plotFull) ? plotFull : xAccessor === identity;
@@ -163,20 +156,8 @@ function resetChart(props, firstCalculation = false) {
   };
 }
 
-function updateChart(
-  newState,
-  initialXScale,
-  props,
-  lastItemWasVisible,
-  initialChartConfig,
-) {
-  const {
-    fullData,
-    xScale,
-    xAccessor,
-    displayXAccessor,
-    filterData,
-  } = newState;
+function updateChart(newState, initialXScale, props, lastItemWasVisible, initialChartConfig) {
+  const { fullData, xScale, xAccessor, displayXAccessor, filterData } = newState;
 
   const lastItem = last(fullData);
   const [start, end] = initialXScale.domain();
@@ -201,19 +182,14 @@ function updateChart(
     const [newRangeStart, newRangeEnd] = updatedXScale.range();
     const newDomainExtent =
       ((newRangeEnd - newRangeStart) / (rangeEnd - rangeStart)) * (end - start);
-    const newStart = maintainPointsPerPixelOnResize
-      ? end - newDomainExtent
-      : start;
+    const newStart = maintainPointsPerPixelOnResize ? end - newDomainExtent : start;
 
     const lastItemX = initialXScale(xAccessor(lastItem));
     // console.log("pointsPerPixel => ", newStart, start, end, updatedXScale(end));
-    const response = filterData(
-      fullData,
-      [newStart, end],
-      xAccessor,
-      updatedXScale,
-      { fallbackStart: start, fallbackEnd: { lastItem, lastItemX } },
-    );
+    const response = filterData(fullData, [newStart, end], xAccessor, updatedXScale, {
+      fallbackStart: start,
+      fallbackEnd: { lastItem, lastItemX },
+    });
     initialPlotData = response.plotData;
     updatedXScale.domain(response.domain);
     // console.log("HERE!!!!!", start, end);
@@ -228,12 +204,7 @@ function updateChart(
       .map(x => x + dx)
       .map(initialXScale.invert);
 
-    const response = filterData(
-      fullData,
-      [newStart, newEnd],
-      xAccessor,
-      updatedXScale,
-    );
+    const response = filterData(fullData, [newStart, newEnd], xAccessor, updatedXScale);
     initialPlotData = response.plotData;
     updatedXScale.domain(response.domain); // if last item was visible, then shift
   }
@@ -256,13 +227,7 @@ function updateChart(
 }
 
 function calculateState(props) {
-  const {
-    xAccessor: inputXAccesor,
-    xExtents: xExtentsProp,
-    data,
-    padding,
-    flipXScale,
-  } = props;
+  const { xAccessor: inputXAccesor, xExtents: xExtentsProp, data, padding, flipXScale } = props;
 
   if (process.env.NODE_ENV !== 'production' && isDefined(props.xScale.invert)) {
     for (let i = 1; i < data.length; i++) {
@@ -283,28 +248,13 @@ function calculateState(props) {
   const extent =
     typeof xExtentsProp === 'function'
       ? xExtentsProp(data)
-      : d3Extent(
-          xExtentsProp
-            .map(d => functor(d))
-            .map(each => each(data, inputXAccesor)),
-        );
+      : d3Extent(xExtentsProp.map(d => functor(d)).map(each => each(data, inputXAccesor)));
   /* eslint-enable */
 
-  const {
-    xAccessor,
-    displayXAccessor,
-    xScale,
-    fullData,
-    filterData,
-  } = calculateFullData(props);
+  const { xAccessor, displayXAccessor, xScale, fullData, filterData } = calculateFullData(props);
   const updatedXScale = setXRange(xScale, dimensions, padding, direction);
 
-  const { plotData, domain } = filterData(
-    fullData,
-    extent,
-    inputXAccesor,
-    updatedXScale,
-  );
+  const { plotData, domain } = filterData(fullData, extent, inputXAccesor, updatedXScale);
 
   if (process.env.NODE_ENV !== 'production' && plotData.length <= 1) {
     throw new Error(
@@ -323,18 +273,14 @@ function calculateState(props) {
 
 function setXRange(xScale, dimensions, padding, direction = 1) {
   if (xScale.rangeRoundPoints) {
-    if (isNaN(padding))
-      throw new Error('padding has to be a number for ordinal scale');
+    if (isNaN(padding)) throw new Error('padding has to be a number for ordinal scale');
     xScale.rangeRoundPoints([0, dimensions.width], padding);
   } else if (xScale.padding) {
-    if (isNaN(padding))
-      throw new Error('padding has to be a number for ordinal scale');
+    if (isNaN(padding)) throw new Error('padding has to be a number for ordinal scale');
     xScale.range([0, dimensions.width]);
     xScale.padding(padding / 2);
   } else {
-    const { left, right } = isNaN(padding)
-      ? padding
-      : { left: padding, right: padding };
+    const { left, right } = isNaN(padding) ? padding : { left: padding, right: padding };
     if (direction > 0) {
       xScale.range([left, dimensions.width - right]);
     } else {
@@ -348,14 +294,8 @@ function pinchCoordinates(pinch) {
   const { touch1Pos, touch2Pos } = pinch;
 
   return {
-    topLeft: [
-      Math.min(touch1Pos[0], touch2Pos[0]),
-      Math.min(touch1Pos[1], touch2Pos[1]),
-    ],
-    bottomRight: [
-      Math.max(touch1Pos[0], touch2Pos[0]),
-      Math.max(touch1Pos[1], touch2Pos[1]),
-    ],
+    topLeft: [Math.min(touch1Pos[0], touch2Pos[0]), Math.min(touch1Pos[1], touch2Pos[1])],
+    bottomRight: [Math.max(touch1Pos[0], touch2Pos[0]), Math.max(touch1Pos[1], touch2Pos[1])],
   };
 }
 
@@ -496,9 +436,7 @@ class ChartCanvas extends Component {
     }
   }
   amIOnTop(id) {
-    const dragableComponents = this.subscriptions.filter(
-      each => each.getPanConditions().draggable,
-    );
+    const dragableComponents = this.subscriptions.filter(each => each.getPanConditions().draggable);
 
     return dragableComponents.length > 0 && last(dragableComponents).id === id;
   }
@@ -574,19 +512,13 @@ class ChartCanvas extends Component {
 
     const e = initialPinchXScale.range()[1];
 
-    const xDash = Math.round(
-      -(iBR[0] * fTL[0] - iTL[0] * fBR[0]) / (iTL[0] - iBR[0]),
-    );
+    const xDash = Math.round(-(iBR[0] * fTL[0] - iTL[0] * fBR[0]) / (iTL[0] - iBR[0]));
     const yDash = Math.round(
-      e +
-        ((e - iBR[0]) * (e - fTL[0]) - (e - iTL[0]) * (e - fBR[0])) /
-          (e - iTL[0] - (e - iBR[0])),
+      e + ((e - iBR[0]) * (e - fTL[0]) - (e - iTL[0]) * (e - fBR[0])) / (e - iTL[0] - (e - iBR[0])),
     );
 
     const x = Math.round((-xDash * iTL[0]) / (-xDash + fTL[0]));
-    const y = Math.round(
-      e - ((yDash - e) * (e - iTL[0])) / (yDash + (e - fTL[0])),
-    );
+    const y = Math.round(e - ((yDash - e) * (e - iTL[0])) / (yDash + (e - fTL[0])));
 
     const newDomain = [x, y].map(initialPinchXScale.invert);
     // var domainR = initial.right + right;
@@ -611,12 +543,7 @@ class ChartCanvas extends Component {
       { plotData, xAccessor, displayXAccessor, fullData },
       updatedScale.domain(),
     );
-    const currentItem = getCurrentItem(
-      updatedScale,
-      xAccessor,
-      mouseXY,
-      plotData,
-    );
+    const currentItem = getCurrentItem(updatedScale, xAccessor, mouseXY, plotData);
 
     return {
       chartConfig,
@@ -675,11 +602,7 @@ class ChartCanvas extends Component {
   handleZoom(zoomDirection, mouseXY, e) {
     if (this.panInProgress) return;
     // console.log("zoomDirection ", zoomDirection, " mouseXY ", mouseXY);
-    const {
-      xAccessor,
-      xScale: initialXScale,
-      plotData: initialPlotData,
-    } = this.state;
+    const { xAccessor, xScale: initialXScale, plotData: initialPlotData } = this.state;
     const { zoomMultiplier, zoomAnchor } = this.props;
     const { fullData } = this;
     const item = zoomAnchor({
@@ -697,9 +620,7 @@ class ChartCanvas extends Component {
       .map(x => cx + (x - cx) * c)
       .map(initialXScale.invert);
 
-    const { xScale, plotData, chartConfig } = this.calculateStateForDomain(
-      newDomain,
-    );
+    const { xScale, plotData, chartConfig } = this.calculateStateForDomain(newDomain);
 
     const currentItem = getCurrentItem(xScale, xAccessor, mouseXY, plotData);
     const currentCharts = getCurrentCharts(chartConfig, mouseXY);
@@ -746,9 +667,7 @@ class ChartCanvas extends Component {
     );
   }
   xAxisZoom(newDomain) {
-    const { xScale, plotData, chartConfig } = this.calculateStateForDomain(
-      newDomain,
-    );
+    const { xScale, plotData, chartConfig } = this.calculateStateForDomain(newDomain);
     this.clearThreeCanvas();
 
     const { xAccessor } = this.state;
@@ -811,11 +730,7 @@ class ChartCanvas extends Component {
     this.draw({ force: true });
   }
   panHelper(mouseXY, initialXScale, { dx, dy }, chartsToPan) {
-    const {
-      xAccessor,
-      displayXAccessor,
-      chartConfig: initialChartConfig,
-    } = this.state;
+    const { xAccessor, displayXAccessor, chartConfig: initialChartConfig } = this.state;
     const { filterData } = this.state;
     const { fullData } = this;
     const { postCalculator } = this.props;
@@ -847,12 +762,7 @@ class ChartCanvas extends Component {
     const plotData = postCalculator(beforePlotData);
     // console.log(last(plotData));
 
-    const currentItem = getCurrentItem(
-      updatedScale,
-      xAccessor,
-      mouseXY,
-      plotData,
-    );
+    const currentItem = getCurrentItem(updatedScale, xAccessor, mouseXY, plotData);
     const chartConfig = getChartConfigWithUpdatedYScales(
       initialChartConfig,
       { plotData, xAccessor, displayXAccessor, fullData },
@@ -879,15 +789,9 @@ class ChartCanvas extends Component {
       this.hackyWayToStopPanBeyondBounds__plotData =
         this.hackyWayToStopPanBeyondBounds__plotData || this.state.plotData;
       this.hackyWayToStopPanBeyondBounds__domain =
-        this.hackyWayToStopPanBeyondBounds__domain ||
-        this.state.xScale.domain();
+        this.hackyWayToStopPanBeyondBounds__domain || this.state.xScale.domain();
 
-      const state = this.panHelper(
-        mousePosition,
-        panStartXScale,
-        dxdy,
-        chartsToPan,
-      );
+      const state = this.panHelper(mousePosition, panStartXScale, dxdy, chartsToPan);
 
       this.hackyWayToStopPanBeyondBounds__plotData = state.plotData;
       this.hackyWayToStopPanBeyondBounds__domain = state.xScale.domain();
@@ -910,12 +814,7 @@ class ChartCanvas extends Component {
     }
   }
   handlePanEnd(mousePosition, panStartXScale, dxdy, chartsToPan, e) {
-    const state = this.panHelper(
-      mousePosition,
-      panStartXScale,
-      dxdy,
-      chartsToPan,
-    );
+    const state = this.panHelper(mousePosition, panStartXScale, dxdy, chartsToPan);
     // console.log(this.canvasDrawCallbackList.map(d => d.type));
     this.hackyWayToStopPanBeyondBounds__plotData = null;
     this.hackyWayToStopPanBeyondBounds__domain = null;
@@ -1094,19 +993,11 @@ class ChartCanvas extends Component {
     const { chartConfig: initialChartConfig } = this.state;
 
     let newState;
-    if (
-      !interaction ||
-      reset ||
-      !shallowEqual(this.props.xExtents, nextProps.xExtents)
-    ) {
+    if (!interaction || reset || !shallowEqual(this.props.xExtents, nextProps.xExtents)) {
       if (process.env.NODE_ENV !== 'production') {
-        if (!interaction)
-          log('RESET CHART, changes to a non interactive chart');
+        if (!interaction) log('RESET CHART, changes to a non interactive chart');
         else if (reset)
-          log(
-            'RESET CHART, one or more of these props changed',
-            CANDIDATES_FOR_RESET,
-          );
+          log('RESET CHART, one or more of these props changed', CANDIDATES_FOR_RESET);
         else log('xExtents changed');
       }
       // do reset
@@ -1118,8 +1009,7 @@ class ChartCanvas extends Component {
 
       const calculatedState = calculateFullData(nextProps);
       const { xAccessor } = calculatedState;
-      const lastItemWasVisible =
-        xAccessor(prevLastItem) <= end && xAccessor(prevLastItem) >= start;
+      const lastItemWasVisible = xAccessor(prevLastItem) <= end && xAccessor(prevLastItem) >= start;
 
       if (process.env.NODE_ENV !== 'production') {
         if (this.props.data !== nextProps.data)
@@ -1127,10 +1017,7 @@ class ChartCanvas extends Component {
             'data is changed but seriesName did not, change the seriesName if you wish to reset the chart and lastItemWasVisible = ',
             lastItemWasVisible,
           );
-        else
-          log(
-            'Trivial change, may be width/height or type changed, but that does not matter',
-          );
+        else log('Trivial change, may be width/height or type changed, but that does not matter');
       }
 
       newState = updateChart(
@@ -1216,7 +1103,7 @@ class ChartCanvas extends Component {
       panEvent,
       zoomEvent,
     } = this.props;
-    const { useCrossHairStyleCursor, onSelect } = this.props;
+    const { useCrossHairStyleCursor, onSelect, scrollDirection } = this.props;
 
     const { plotData, xScale, xAccessor, chartConfig } = this.state;
     const dimensions = getDimensions(this.props);
@@ -1226,11 +1113,7 @@ class ChartCanvas extends Component {
     const cursorStyle = useCrossHairStyleCursor && interaction;
     const cursor = getCursorStyle();
     return (
-      <div
-        style={{ position: 'relative', width, height }}
-        className={className}
-        onClick={onSelect}
-      >
+      <div style={{ position: 'relative', width, height }} className={className} onClick={onSelect}>
         <CanvasContainer
           ref={this.saveCanvasContainerNode}
           type={type}
@@ -1248,12 +1131,7 @@ class ChartCanvas extends Component {
           {cursor}
           <defs>
             <clipPath id="chart-area-clip">
-              <rect
-                x="0"
-                y="0"
-                width={dimensions.width}
-                height={dimensions.height}
-              />
+              <rect x="0" y="0" width={dimensions.width} height={dimensions.height} />
             </clipPath>
             {chartConfig.map((each, idx) => (
               <clipPath key={idx} id={`chart-area-clip-${each.id}`}>
@@ -1291,11 +1169,10 @@ class ChartCanvas extends Component {
               onPinchZoomEnd={this.handlePinchZoomEnd}
               onPan={this.handlePan}
               onPanEnd={this.handlePanEnd}
+              scrollDirection={scrollDirection}
             />
 
-            <g className="react-stockcharts-avoid-interaction">
-              {this.props.children}
-            </g>
+            <g className="react-stockcharts-avoid-interaction">{this.props.children}</g>
           </g>
         </svg>
       </div>
@@ -1304,8 +1181,7 @@ class ChartCanvas extends Component {
 }
 
 function isInteractionEnabled(xScale, xAccessor, data) {
-  const interaction =
-    !isNaN(xScale(xAccessor(head(data)))) && isDefined(xScale.invert);
+  const interaction = !isNaN(xScale(xAccessor(head(data)))) && isDefined(xScale.invert);
   return interaction;
 }
 
@@ -1356,15 +1232,12 @@ ChartCanvas.propTypes = {
   },
   mouseMoveEvent: PropTypes.bool,
   panEvent: PropTypes.bool,
-  clamp: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.bool,
-    PropTypes.func,
-  ]),
+  clamp: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.func]),
   zoomEvent: PropTypes.bool,
   onSelect: PropTypes.func,
   maintainPointsPerPixelOnResize: PropTypes.bool,
   disableInteraction: PropTypes.bool,
+  scrollDirection: PropTypes.oneOf(['normal', 'reserved']),
 };
 
 ChartCanvas.defaultProps = {
@@ -1392,6 +1265,7 @@ ChartCanvas.defaultProps = {
   maintainPointsPerPixelOnResize: true,
   // ratio: 2,
   disableInteraction: false,
+  scrollDirection: 'normal',
 };
 
 ChartCanvas.childContextTypes = {

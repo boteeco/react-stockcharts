@@ -99,11 +99,10 @@ class EventCapture extends Component {
     onMouseLeave(e);
   }
   handleWheel(e) {
-    const { zoom, onZoom } = this.props;
+    const { zoom, onZoom, scrollDirection } = this.props;
     const { panInProgress } = this.state;
 
-    const yZoom =
-      Math.abs(e.deltaY) > Math.abs(e.deltaX) && Math.abs(e.deltaY) > 0;
+    const yZoom = Math.abs(e.deltaY) > Math.abs(e.deltaX) && Math.abs(e.deltaY) > 0;
     // const xPan = Math.abs(e.deltaY) < Math.abs(e.deltaX) && Math.abs(e.deltaX) > 0;
     const mouseXY = mousePosition(e);
     e.preventDefault();
@@ -120,8 +119,14 @@ class EventCapture extends Component {
         this.lastNewPos = mouseXY;
         this.panHappened = true;
 
-        this.dx += e.deltaX;
-        this.dy += e.deltaY;
+        if (scrollDirection === 'normal') {
+          this.dx -= e.deltaX;
+          this.dy -= e.deltaY;
+        } else {
+          this.dx += e.deltaX;
+          this.dy += e.deltaY;
+        }
+
         const dxdy = { dx: this.dx, dy: this.dy };
 
         this.props.onPan(mouseXY, panStartXScale, dxdy, chartsToPan, e);
@@ -262,10 +267,7 @@ class EventCapture extends Component {
     const { getAllPanConditions } = this.props;
     const { pan: initialPanEnabled } = this.props;
 
-    const {
-      panEnabled,
-      draggable: somethingSelected,
-    } = getAllPanConditions().reduce(
+    const { panEnabled, draggable: somethingSelected } = getAllPanConditions().reduce(
       (returnObj, a) => {
         return {
           draggable: returnObj.draggable || a.draggable,
@@ -345,9 +347,7 @@ class EventCapture extends Component {
 
       const { panStartXScale, panOrigin, chartsToPan } = this.state.panStart;
 
-      const mouseXY = this.mouseInteraction
-        ? mouse(this.node)
-        : touches(this.node)[0];
+      const mouseXY = this.mouseInteraction ? mouse(this.node) : touches(this.node)[0];
 
       this.lastNewPos = mouseXY;
       const dx = mouseXY[0] - panOrigin[0];
@@ -515,12 +515,7 @@ class EventCapture extends Component {
     }
   }
   render() {
-    const {
-      height,
-      width,
-      disableInteraction,
-      useCrossHairStyleCursor,
-    } = this.props;
+    const { height, width, disableInteraction, useCrossHairStyleCursor } = this.props;
     /* prettier-ignore */
     const className =
       this.state.cursorOverrideClass != null
@@ -563,6 +558,8 @@ EventCapture.propTypes = {
   panSpeedMultiplier: PropTypes.number.isRequired,
   focus: PropTypes.bool.isRequired,
   useCrossHairStyleCursor: PropTypes.bool.isRequired,
+
+  scrollDirection: PropTypes.oneOf(['normal', 'reserved']),
 
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
